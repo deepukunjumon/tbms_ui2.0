@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import API, { API_ENDPOINTS, updateItem, updateItemStatus, createItem } from "../../../services/api";
+import { useEffect, useState, useRef } from "react";
+import API, { API_ENDPOINTS, updateItem, updateItemStatus, createItem, importItems, SAMPLE_ITEMS_FILE_URL } from "../../../services/api";
 import TableComponent from "../../../components/TableComponent";
-import { MdEdit, MdAdd } from "react-icons/md";
+import { MdEdit, MdAdd, MdMoreVert } from "react-icons/md";
 import Snackbar from "../../../components/Snackbar";
 
 const CATEGORY_OPTIONS = [
@@ -27,8 +27,16 @@ const Items = () => {
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [createFields, setCreateFields] = useState({ name: "", category: "", description: "" });
     const [createLoading, setCreateLoading] = useState(false);
+    const [importResponse, setImportResponse] = useState(null);
 
     const [snack, setSnack] = useState({ message: "", type: "success" });
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef();
+    const fileInputRef = useRef();
+
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [selectedImportFile, setSelectedImportFile] = useState(null);
+    const [importLoading, setImportLoading] = useState(false);
 
     const token = localStorage.getItem("token");
 
@@ -67,6 +75,55 @@ const Items = () => {
     useEffect(() => {
         fetchItems(currentPage, pageSize, debouncedSearch);
     }, [currentPage, pageSize, debouncedSearch]);
+
+    // Close menu on outside click
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (menuRef.current && !menuRef.current.contains(e.target)) {
+                setMenuOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleImportClick = () => {
+        setMenuOpen(false);
+        setImportModalOpen(true);
+        setSelectedImportFile(null);
+        setImportResponse(null);
+        setImportLoading(false);
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setSelectedImportFile(file);
+    };
+
+    const handleImportFile = async () => {
+        if (!selectedImportFile) return;
+        setImportLoading(true);
+        setImportResponse(null);
+        try {
+            const res = await importItems(selectedImportFile);
+            setSnack({ message: res.data?.message || "Items imported successfully", type: "success" });
+            setImportResponse(res.data);
+            fetchItems(currentPage, pageSize, debouncedSearch);
+        } catch (err) {
+            setSnack({ message: "Failed to import items.", type: "error" });
+            setImportResponse({ message: "Failed to import items.", errors: [] });
+        } finally {
+            setImportLoading(false);
+        }
+    };
+
+    const handleCloseImportModal = () => {
+        setImportModalOpen(false);
+        setSelectedImportFile(null);
+        setImportResponse(null);
+        setImportLoading(false);
+    };
 
     const handlePageChange = (page) => setCurrentPage(page);
     const handlePageSizeChange = (size) => {
@@ -214,7 +271,28 @@ const Items = () => {
                 type={snack.type}
                 onClose={() => setSnack({ message: "", type: "success" })}
             />
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">Items</h2>
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Items</h2>
+                <div className="relative" ref={menuRef}>
+                    <button
+                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
+                        onClick={() => setMenuOpen((v) => !v)}
+                        aria-label="Menu"
+                    >
+                        <MdMoreVert size={24} className="text-gray-800 dark:text-gray-100" />
+                    </button>
+                    {menuOpen && (
+                        <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-50">
+                            <button
+                                className="w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                onClick={handleImportClick}
+                            >
+                                Import
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
             <TableComponent
                 columns={columns}
                 data={items}
@@ -290,6 +368,90 @@ const Items = () => {
                                 {createLoading ? "Saving..." : "Save"}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* Import File Modal */}
+            {importModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
+                        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Import Items</h3>
+                        {importLoading ? (
+                            <div className="flex flex-col items-center justify-center py-8">
+                                <span className="text-gray-700 dark:text-gray-200 mb-2">Importing...</span>
+                                <div className="loader border-t-4 border-teal-600 rounded-full w-8 h-8 animate-spin"></div>
+                            </div>
+                        ) : importResponse ? (
+                            <div className="mb-3">
+                                <p className="text-gray-800 dark:text-gray-100 mb-2">{importResponse.message}</p>
+                                {importResponse.errors && importResponse.errors.length > 0 && (
+                                    <div className="mt-2">
+                                        <p className="text-red-600 dark:text-red-400 font-medium mb-1">Errors:</p>
+                                        <div className="max-h-64 overflow-y-auto pr-2">
+                                            <ul className="list-disc list-inside text-sm text-red-700 dark:text-red-300">
+                                                {importResponse.errors.map((err, idx) => (
+                                                    <li key={idx} className="mb-2">
+                                                        <span className="font-semibold">Row {err.row}:</span>
+                                                        <ul className="ml-4 list-disc">
+                                                            {Object.entries(err.errors).map(([field, messages], fidx) => (
+                                                                <li key={fidx}>
+                                                                    <span className="font-medium">{field}:</span> {Array.isArray(messages) ? messages.join(', ') : messages}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div>
+                                <a
+                                    href={SAMPLE_ITEMS_FILE_URL}
+                                    download
+                                    rel="noopener noreferrer"
+                                    className="inline-block mb-3 text-teal-600 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-200 transition"
+                                >
+                                    Download sample file
+                                </a>
+                                <label className="block mb-2 text-gray-700 dark:text-gray-200">Select file</label>
+                                <input
+                                    type="file"
+                                    accept=".xlsx,.xls"
+                                    onChange={handleFileChange}
+                                    disabled={importLoading}
+                                    className="text-gray-800 dark:text-gray-100"
+                                />
+                                <div className="flex justify-end gap-2 mt-4">
+                                    <button
+                                        className="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+                                        onClick={handleCloseImportModal}
+                                        disabled={importLoading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        className="px-4 py-2 rounded bg-teal-600 text-white hover:bg-teal-700 transition"
+                                        onClick={handleImportFile}
+                                        disabled={!selectedImportFile || importLoading}
+                                    >
+                                        Import
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {importResponse && (
+                            <div className="flex justify-end mt-4">
+                                <button
+                                    className="px-4 py-2 rounded bg-teal-600 text-white hover:bg-teal-700 transition"
+                                    onClick={handleCloseImportModal}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

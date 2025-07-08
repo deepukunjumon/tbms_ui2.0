@@ -48,7 +48,7 @@ const TableComponent = ({
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto border rounded-lg shadow-sm">
+            <div className="overflow-x-auto border rounded-md shadow-sm max-h-[27rem] overflow-y-auto">
                 <table className="min-w-full table-auto text-sm text-left">
                     <thead className="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                         <tr>
@@ -93,12 +93,12 @@ const TableComponent = ({
 
             {/* Pagination */}
             {pagination && (
-                <div className="flex flex-col items-center sm:flex-row sm:justify-between mt-6 gap-3 text-sm text-gray-600 dark:text-gray-300">
-                    <div>
+                <div className="mt-6 text-sm text-gray-600 dark:text-gray-300 flex flex-col items-center gap-2">
+                    <div className="mb-1">
                         Showing {pagination.from || 1} to {pagination.to || data.length} of {pagination.total || data.length} items
                     </div>
                     {totalPages > 1 && (
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 justify-center">
                             <button
                                 onClick={() => onPageChange(currentPage - 1)}
                                 disabled={currentPage === 1}
@@ -106,18 +106,67 @@ const TableComponent = ({
                             >
                                 Previous
                             </button>
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                <button
-                                    key={page}
-                                    onClick={() => onPageChange(page)}
-                                    className={`px-3 py-1 rounded-md border text-sm ${page === currentPage
-                                        ? "bg-teal-600 text-white border-teal-600"
-                                        : "bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        }`}
-                                >
-                                    {page}
-                                </button>
-                            ))}
+                            {/* Pagination with ellipsis */}
+                            {(() => {
+                                const pages = [];
+                                const pageWindow = 2;
+                                let start = Math.max(2, currentPage - pageWindow);
+                                let end = Math.min(totalPages - 1, currentPage + pageWindow);
+                                if (currentPage <= 1 + pageWindow) {
+                                    end = Math.min(totalPages - 1, 1 + 2 * pageWindow);
+                                }
+                                if (currentPage >= totalPages - pageWindow) {
+                                    start = Math.max(2, totalPages - 2 * pageWindow);
+                                }
+                                // Always show first page
+                                pages.push(
+                                    <button
+                                        key={1}
+                                        onClick={() => onPageChange(1)}
+                                        className={`px-3 py-1 rounded-md border text-sm ${currentPage === 1
+                                            ? "bg-teal-600 text-white border-teal-600"
+                                            : "bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            }`}
+                                    >
+                                        1
+                                    </button>
+                                );
+                                if (start > 2) {
+                                    pages.push(<span key="start-ellipsis" className="px-2">...</span>);
+                                }
+                                for (let page = start; page <= end; page++) {
+                                    pages.push(
+                                        <button
+                                            key={page}
+                                            onClick={() => onPageChange(page)}
+                                            className={`px-3 py-1 rounded-md border text-sm ${page === currentPage
+                                                ? "bg-teal-600 text-white border-teal-600"
+                                                : "bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    );
+                                }
+                                if (end < totalPages - 1) {
+                                    pages.push(<span key="end-ellipsis" className="px-2">...</span>);
+                                }
+                                if (totalPages > 1) {
+                                    pages.push(
+                                        <button
+                                            key={totalPages}
+                                            onClick={() => onPageChange(totalPages)}
+                                            className={`px-3 py-1 rounded-md border text-sm ${currentPage === totalPages
+                                                ? "bg-teal-600 text-white border-teal-600"
+                                                : "bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                }`}
+                                        >
+                                            {totalPages}
+                                        </button>
+                                    );
+                                }
+                                return pages;
+                            })()}
                             <button
                                 onClick={() => onPageChange(currentPage + 1)}
                                 disabled={currentPage === totalPages}

@@ -1,8 +1,10 @@
 import axios from "axios";
 
 
+export const BASE_URL = "https://api-tbms.up.railway.app";
+
 const API = axios.create({
-    baseURL: "https://api-tbms.up.railway.app/api",
+    baseURL: `${BASE_URL}/api`,
 });
 
 export const API_ENDPOINTS = {
@@ -36,7 +38,6 @@ export const updateItemStatus = async (id, status) => {
     return API.post("/item/update-status", { id, status });
 };
 
-// Designations API
 export const getDesignations = (params = {}, config = {}) =>
     API.get(API_ENDPOINTS.DESIGNATIONS, { params, ...config });
 
@@ -51,5 +52,15 @@ export const createDesignation = (designation) =>
 
 export const createItem = (item) =>
     API.post("/create/item", item);
+
+export const importItems = (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return API.post("/import/items", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+};
+
+export const SAMPLE_ITEMS_FILE_URL = `${BASE_URL}/sample-files/items.xlsx`;
 
 export default API;
