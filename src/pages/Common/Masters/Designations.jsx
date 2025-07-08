@@ -8,6 +8,7 @@ import {
     updateDesignationStatus,
     createDesignation,
 } from "../../../services/api";
+import { useTheme } from "../../../context/Theme";
 
 const Designations = () => {
     const [designations, setDesignations] = useState([]);
@@ -25,6 +26,8 @@ const Designations = () => {
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [createValue, setCreateValue] = useState("");
     const [createLoading, setCreateLoading] = useState(false);
+
+    const { colors } = useTheme();
 
     // Debounce search
     useEffect(() => {
@@ -54,7 +57,6 @@ const Designations = () => {
 
     useEffect(() => {
         fetchDesignations(currentPage, pageSize, debouncedSearch);
-        // eslint-disable-next-line
     }, [currentPage, pageSize, debouncedSearch]);
 
     const handlePageChange = (page) => setCurrentPage(page);
@@ -159,7 +161,8 @@ const Designations = () => {
                 <div className="flex items-center gap-2">
                     {row.status === 1 && (
                         <span
-                            className="inline-flex items-center justify-center p-2 rounded-full cursor-pointer text-teal-600 hover:bg-teal-100 dark:hover:bg-teal-900 hover:text-teal-800 transition"
+                            className="inline-flex items-center justify-center p-2 rounded-full cursor-pointer transition"
+                            style={{ color: colors.primary }}
                             title="Edit"
                             onClick={() => handleEditClick(row)}
                         >
@@ -168,7 +171,8 @@ const Designations = () => {
                     )}
                     <button
                         onClick={() => handleStatusToggle(row)}
-                        className={`relative inline-flex items-center h-4 w-7 rounded-full transition-colors duration-300 focus:outline-none ${row.status === 1 ? "bg-green-500" : "bg-gray-300"}`}
+                        className="relative inline-flex items-center h-4 w-7 rounded-full transition-colors duration-300 focus:outline-none"
+                        style={{ background: row.status === 1 ? colors.success : colors.gray[300] }}
                         title={row.status === 1 ? "Set Inactive" : "Set Active"}
                     >
                         <span
@@ -268,7 +272,8 @@ const Designations = () => {
             )}
             {/* Floating Add Button */}
             <button
-                className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-lg hover:bg-teal-700 transition text-3xl focus:outline-none"
+                className="fixed bottom-7 right-7 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none"
+                style={{ background: colors.primary, color: colors.white }}
                 onClick={() => setCreateModalOpen(true)}
                 title="Add Designation"
             >

@@ -1,5 +1,6 @@
 import React from "react";
 import Spinner from "./Spinner";
+import { useTheme } from "../context/Theme";
 
 const TableComponent = ({
     columns,
@@ -18,6 +19,7 @@ const TableComponent = ({
     const from = pagination?.from || ((currentPage - 1) * (pagination?.per_page || 10)) + 1;
     const currentPageSize = pagination?.per_page || 10;
     const pageSizeOptions = [5, 10, 25, 50, 100];
+    const { colors } = useTheme();
 
     return (
         <div className="w-full">
@@ -123,10 +125,8 @@ const TableComponent = ({
                                     <button
                                         key={1}
                                         onClick={() => onPageChange(1)}
-                                        className={`px-3 py-1 rounded-md border text-sm ${currentPage === 1
-                                            ? "bg-teal-600 text-white border-teal-600"
-                                            : "bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                            }`}
+                                        className={`px-3 py-1 rounded-md border text-sm ${currentPage === 1 ? '' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                                        style={currentPage === 1 ? { background: colors?.primary, color: colors?.white, borderColor: colors?.primary } : {}}
                                     >
                                         1
                                     </button>
@@ -139,10 +139,8 @@ const TableComponent = ({
                                         <button
                                             key={page}
                                             onClick={() => onPageChange(page)}
-                                            className={`px-3 py-1 rounded-md border text-sm ${page === currentPage
-                                                ? "bg-teal-600 text-white border-teal-600"
-                                                : "bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                }`}
+                                            className={`px-3 py-1 rounded-md border text-sm ${page === currentPage ? '' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                                            style={page === currentPage ? { background: colors?.primary, color: colors?.white, borderColor: colors?.primary } : {}}
                                         >
                                             {page}
                                         </button>
@@ -156,10 +154,8 @@ const TableComponent = ({
                                         <button
                                             key={totalPages}
                                             onClick={() => onPageChange(totalPages)}
-                                            className={`px-3 py-1 rounded-md border text-sm ${currentPage === totalPages
-                                                ? "bg-teal-600 text-white border-teal-600"
-                                                : "bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                }`}
+                                            className={`px-3 py-1 rounded-md border text-sm ${currentPage === totalPages ? '' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                                            style={currentPage === totalPages ? { background: colors?.primary, color: colors?.white, borderColor: colors?.primary } : {}}
                                         >
                                             {totalPages}
                                         </button>

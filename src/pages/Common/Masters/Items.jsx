@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import API, { API_ENDPOINTS, updateItem, updateItemStatus, createItem, importItems, SAMPLE_ITEMS_FILE_URL } from "../../../services/api";
+import { useTheme } from "../../../context/Theme";
 import TableComponent from "../../../components/TableComponent";
 import { MdEdit, MdAdd, MdMoreVert } from "react-icons/md";
 import Snackbar from "../../../components/Snackbar";
@@ -39,6 +40,7 @@ const Items = () => {
     const [importLoading, setImportLoading] = useState(false);
 
     const token = localStorage.getItem("token");
+    const { colors } = useTheme();
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -308,7 +310,8 @@ const Items = () => {
             />
             {/* Floating Add Button */}
             <button
-                className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-lg hover:bg-teal-700 transition text-3xl focus:outline-none"
+                className="fixed bottom-7 right-7 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none"
+                style={{ background: colors.primary, color: colors.white }}
                 onClick={() => setCreateModalOpen(true)}
                 title="Add Item"
             >
@@ -412,7 +415,8 @@ const Items = () => {
                                     href={SAMPLE_ITEMS_FILE_URL}
                                     download
                                     rel="noopener noreferrer"
-                                    className="inline-block mb-3 text-teal-600 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-200 transition"
+                                    className="inline-block mb-3 hover:underline transition"
+                                    style={{ color: colors.primary }}
                                 >
                                     Download sample file
                                 </a>
@@ -433,7 +437,8 @@ const Items = () => {
                                         Cancel
                                     </button>
                                     <button
-                                        className="px-4 py-2 rounded bg-teal-600 text-white hover:bg-teal-700 transition"
+                                        className="px-4 py-2 rounded transition"
+                                        style={{ background: colors.primary, color: colors.white, opacity: importLoading || !selectedImportFile ? 0.7 : 1 }}
                                         onClick={handleImportFile}
                                         disabled={!selectedImportFile || importLoading}
                                     >

@@ -1,10 +1,12 @@
 import React from "react";
+import { useTheme } from "../context/Theme";
 
-const Spinner = ({ size = 48, color = "#14b8a6", className = "", style = {} }) => {
+const Spinner = ({ size = 48, color, className = "", style = {} }) => {
+    const { colors } = useTheme();
     const ringStyle = {
         width: size,
         height: size,
-        borderTopColor: color,
+        borderTopColor: color || colors.primary,
     };
 
     return (
