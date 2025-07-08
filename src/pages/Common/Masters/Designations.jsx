@@ -272,7 +272,7 @@ const Designations = () => {
             )}
             {/* Floating Add Button */}
             <button
-                className="fixed bottom-7 right-7 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none"
+                className="fixed bottom-7 right-7 z-10 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none"
                 style={{ background: colors.primary, color: colors.white }}
                 onClick={() => setCreateModalOpen(true)}
                 title="Add Designation"
