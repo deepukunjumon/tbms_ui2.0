@@ -1,9 +1,12 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, Fragment } from "react";
 import API, { API_ENDPOINTS, updateItem, updateItemStatus, createItem, importItems, SAMPLE_ITEMS_FILE_URL } from "../../../services/api";
 import { useTheme } from "../../../context/Theme";
 import TableComponent from "../../../components/TableComponent";
-import { MdEdit, MdAdd, MdMoreVert } from "react-icons/md";
+import { MdAdd, MdMoreVert } from "react-icons/md";
+import { BiEdit } from "react-icons/bi";
 import Snackbar from "../../../components/Snackbar";
+import { Listbox, Transition } from "@headlessui/react";
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 
 const CATEGORY_OPTIONS = [
     { value: "snacks", label: "Snacks" },
@@ -33,7 +36,6 @@ const Items = () => {
     const [snack, setSnack] = useState({ message: "", type: "success" });
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef();
-    const fileInputRef = useRef();
 
     const [importModalOpen, setImportModalOpen] = useState(false);
     const [selectedImportFile, setSelectedImportFile] = useState(null);
@@ -50,7 +52,7 @@ const Items = () => {
         return () => clearTimeout(handler);
     }, [search]);
 
-    const fetchItems = async (page = 1, perPage = pageSize, q = debouncedSearch) => {
+    const fetchItems = useCallback(async (page = 1, perPage = pageSize, q = debouncedSearch) => {
         setLoading(true);
         try {
             const res = await API.get(API_ENDPOINTS.ITEMS, {
@@ -72,11 +74,11 @@ const Items = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [token, debouncedSearch, pageSize]);
 
     useEffect(() => {
         fetchItems(currentPage, pageSize, debouncedSearch);
-    }, [currentPage, pageSize, debouncedSearch]);
+    }, [fetchItems, currentPage, pageSize, debouncedSearch]);
 
     // Close menu on outside click
     useEffect(() => {
@@ -243,7 +245,7 @@ const Items = () => {
                             title="Edit"
                             onClick={() => handleEditClick(row)}
                         >
-                            <MdEdit size={20} />
+                            <BiEdit size={20} />
                         </span>
                     )}
                     <button
@@ -333,17 +335,46 @@ const Items = () => {
                         </div>
                         <div className="mb-3">
                             <label className="block text-sm mb-1 text-gray-700 dark:text-gray-200">Category</label>
-                            <select
-                                value={createFields.category}
-                                onChange={e => handleCreateFieldChange("category", e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                                disabled={createLoading}
-                            >
-                                <option value="">Select category</option>
-                                <option value="snacks">Snacks</option>
-                                <option value="food_item">Food Item</option>
-                                <option value="cake">Cake</option>
-                            </select>
+                            <Listbox value={createFields.category} onChange={val => handleCreateFieldChange("category", val)} disabled={createLoading}>
+  {({ open }) => (
+    <div className="relative">
+      <Listbox.Button className="relative w-full cursor-pointer rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 dark:text-white">
+        <span className="block truncate">{CATEGORY_OPTIONS.find(opt => opt.value === createFields.category)?.label || "Select category"}</span>
+        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+          <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+        </span>
+      </Listbox.Button>
+      <Transition
+        show={open}
+        as={Fragment}
+        leave="transition ease-in duration-100"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+      >
+        <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-900 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-200 dark:border-gray-700">
+          {CATEGORY_OPTIONS.map(opt => (
+            <Listbox.Option
+              key={opt.value}
+              className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-teal-100 dark:bg-teal-800 text-teal-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}
+              value={opt.value}
+            >
+              {({ selected }) => (
+                <>
+                  <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{opt.label}</span>
+                  {selected ? (
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-teal-600 dark:text-teal-400">
+                      <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                  ) : null}
+                </>
+              )}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </Transition>
+    </div>
+  )}
+</Listbox>
                         </div>
                         <div className="mb-3">
                             <label className="block text-sm mb-1 text-gray-700 dark:text-gray-200">Description</label>
@@ -477,16 +508,46 @@ const Items = () => {
 
                         <div className="mb-3">
                             <label className="block text-sm mb-1 text-gray-700 dark:text-gray-200">Category</label>
-                            <select
-                                value={editFields.category || ""}
-                                onChange={(e) => handleEditFieldChange("category", e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                            >
-                                <option value="">Select category</option>
-                                {CATEGORY_OPTIONS.map((opt) => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
+                            <Listbox value={editFields.category || ""} onChange={val => handleEditFieldChange("category", val)} disabled={editLoading}>
+  {({ open }) => (
+    <div className="relative">
+      <Listbox.Button className="relative w-full cursor-pointer rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 dark:text-white">
+        <span className="block truncate">{CATEGORY_OPTIONS.find(opt => opt.value === (editFields.category || ""))?.label || "Select category"}</span>
+        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+          <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+        </span>
+      </Listbox.Button>
+      <Transition
+        show={open}
+        as={Fragment}
+        leave="transition ease-in duration-100"
+        leaveFrom="opacity-100"
+        leaveTo="opacity-0"
+      >
+        <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-900 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-200 dark:border-gray-700">
+          {CATEGORY_OPTIONS.map(opt => (
+            <Listbox.Option
+              key={opt.value}
+              className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-teal-100 dark:bg-teal-800 text-teal-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}
+              value={opt.value}
+            >
+              {({ selected }) => (
+                <>
+                  <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{opt.label}</span>
+                  {selected ? (
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-teal-600 dark:text-teal-400">
+                      <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                  ) : null}
+                </>
+              )}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </Transition>
+    </div>
+  )}
+</Listbox>
                         </div>
 
                         <div className="mb-3">

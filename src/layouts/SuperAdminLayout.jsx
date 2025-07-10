@@ -1,22 +1,22 @@
-import { MdDashboard, MdPeople, MdSettings, MdList, MdBakeryDining, MdSecurity } from "react-icons/md";
+import { BiSolidDashboard, BiIntersect, BiPopsicle, BiUserPin, BiStore, BiWrench, BiGroup } from "react-icons/bi";
 import Layout from "./Layout";
 
 const menu = [
-    { label: "Dashboard", path: "/super-admin/dashboard", icon: <MdDashboard /> },
+    { label: "Dashboard", path: "/super-admin/dashboard", icon: <BiSolidDashboard /> },
     {
         label: "Masters",
-        icon: <MdPeople />,
+        icon: <BiIntersect  />,
         children: [
-            { label: "Items", path: "/super-admin/items", icon: <MdBakeryDining /> },
-            { label: "Designations", path: "/super-admin/designations", icon: <MdSecurity /> },
+            { label: "Items", path: "/super-admin/items", icon: <BiPopsicle  /> },
+            { label: "Designations", path: "/super-admin/designations", icon: <BiUserPin  /> },
         ],
     },
     {
         label: "Manage",
-        icon: <MdSettings />,
+        icon: <BiWrench  />,
         children: [
-            { label: "Settings", path: "/super-admin/manage/settings", icon: <MdSettings /> },
-            { label: "Logs", path: "/super-admin/manage/logs", icon: <MdList /> },
+            { label: "Branches", path: "/super-admin/branches", icon: <BiStore  /> },
+            { label: "Employees", path: "/super-admin/employees", icon: <BiGroup /> },
         ],
     },
 ];

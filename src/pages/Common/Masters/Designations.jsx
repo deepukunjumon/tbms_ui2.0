@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import TableComponent from "../../../components/TableComponent";
-import { MdEdit, MdAdd } from "react-icons/md";
+import { MdAdd } from "react-icons/md";
+import { BiEdit } from "react-icons/bi";
 import Snackbar from "../../../components/Snackbar";
 import {
     getDesignations,
@@ -38,7 +39,7 @@ const Designations = () => {
         return () => clearTimeout(handler);
     }, [search]);
 
-    const fetchDesignations = async (page = 1, perPage = pageSize, q = debouncedSearch) => {
+    const fetchDesignations = useCallback(async (page = 1, perPage = pageSize, q = debouncedSearch) => {
         setLoading(true);
         try {
             const res = await getDesignations({ page, per_page: perPage, ...(q && { q }) });
@@ -53,11 +54,11 @@ const Designations = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [pageSize, debouncedSearch]);
 
     useEffect(() => {
         fetchDesignations(currentPage, pageSize, debouncedSearch);
-    }, [currentPage, pageSize, debouncedSearch]);
+    }, [fetchDesignations, currentPage, pageSize, debouncedSearch]);
 
     const handlePageChange = (page) => setCurrentPage(page);
     const handlePageSizeChange = (size) => {
@@ -166,7 +167,7 @@ const Designations = () => {
                             title="Edit"
                             onClick={() => handleEditClick(row)}
                         >
-                            <MdEdit size={20} />
+                            <BiEdit size={20} />
                         </span>
                     )}
                     <button

@@ -1,6 +1,8 @@
 import React from "react";
 import Spinner from "./Spinner";
 import { useTheme } from "../context/Theme";
+import { Listbox, Transition } from "@headlessui/react";
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 
 const TableComponent = ({
     columns,
@@ -36,15 +38,46 @@ const TableComponent = ({
                 )}
                 <div className="flex items-center gap-2 text-sm">
                     <label className="text-gray-700 dark:text-gray-300">Show</label>
-                    <select
-                        value={currentPageSize}
-                        onChange={e => onPageSizeChange(parseInt(e.target.value))}
-                        className="border px-2 py-1 rounded-md dark:bg-gray-900 dark:text-white border-gray-300 dark:border-gray-700"
-                    >
-                        {pageSizeOptions.map(size => (
-                            <option key={size} value={size}>{size}</option>
-                        ))}
-                    </select>
+                    <Listbox value={currentPageSize} onChange={onPageSizeChange}>
+                        {({ open }) => (
+                            <div className="relative">
+                                <Listbox.Button className="relative w-20 cursor-pointer rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 py-1 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 dark:text-white">
+                                    <span className="block truncate">{currentPageSize}</span>
+                                    <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                        <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                    </span>
+                                </Listbox.Button>
+                                <Transition
+                                    show={open}
+                                    as={React.Fragment}
+                                    leave="transition ease-in duration-100"
+                                    leaveFrom="opacity-100"
+                                    leaveTo="opacity-0"
+                                >
+                                    <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-900 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-200 dark:border-gray-700">
+                                        {pageSizeOptions.map(size => (
+                                            <Listbox.Option
+                                                key={size}
+                                                className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-teal-100 dark:bg-teal-800 text-teal-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}
+                                                value={size}
+                                            >
+                                                {({ selected }) => (
+                                                    <>
+                                                        <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{size}</span>
+                                                        {selected ? (
+                                                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-teal-600 dark:text-teal-400">
+                                                                <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                                            </span>
+                                                        ) : null}
+                                                    </>
+                                                )}
+                                            </Listbox.Option>
+                                        ))}
+                                    </Listbox.Options>
+                                </Transition>
+                            </div>
+                        )}
+                    </Listbox>
                     <span className="text-gray-700 dark:text-gray-300">entries</span>
                 </div>
             </div>

@@ -45,7 +45,7 @@ const Snackbar = ({ message, type = "success", onClose, duration = 2500 }) => {
 
     return (
         <div
-            className={`fixed top-5 right-5 z-50 flex items-center gap-3 min-w-[250px] max-w-xs px-4 py-3 shadow-lg rounded-lg animate-slideIn backdrop-blur-xl
+            className={`fixed top-5 right-5 z-100 flex items-center gap-3 min-w-[250px] max-w-xs px-4 py-3 shadow-lg rounded-lg animate-slideIn backdrop-blur-xl
             ${isError
                     ? "bg-red-100 bg-opacity-50 border-red-400 text-red-800 border-l-4 dark:bg-red-900 dark:bg-opacity-70 dark:border-red-600 dark:text-red-100"
                     : "bg-green-100 bg-opacity-50 border-green-400 text-green-800 border-l-4 dark:bg-green-900 dark:bg-opacity-70 dark:border-green-600 dark:text-green-100"
