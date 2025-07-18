@@ -3,7 +3,7 @@ import { useTheme } from "../../context/Theme";
 import { fetchAdminDashboardStats } from "../../services/api";
 
 const SuperAdminDashboard = () => {
-    const { colors, theme } = useTheme();
+    const { colors } = useTheme();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

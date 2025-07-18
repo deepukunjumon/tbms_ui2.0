@@ -1,7 +1,7 @@
 import axios from "axios";
 
 
-export const BASE_URL = "https://api-tbms.up.railway.app";
+export const BASE_URL = "http://localhost:8080";
 
 const API = axios.create({
     baseURL: `${BASE_URL}/api`,
@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
     EMPLOYEES: "/admin/all-employees",
     EMPLOYEE_CREATE: "/admin/create/employee",
     EMPLOYEE_UPDATE: "/employee/update",
+    EMPLOYEE_STATUS_UPDATE: "/employee/update-status",
     MINIMAL_BRANCHES: "/branches/minimal",
     ACTIVE_DESIGNATIONS: "/designations/active",
 };
@@ -92,6 +93,10 @@ export const createEmployee = (employee) =>
 
 export const updateEmployee = (id, changes) =>
     API.put(`${API_ENDPOINTS.EMPLOYEE_UPDATE}/${id}`, changes);
+
+export const updateEmployeeStatus = async (id, status) => {
+    return API.post(API_ENDPOINTS.EMPLOYEE_STATUS_UPDATE, { id, status });
+};
 
 export const getMinimalBranches = (params = {}, config = {}) =>
     API.get(API_ENDPOINTS.MINIMAL_BRANCHES, { params, ...config });

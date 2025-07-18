@@ -4,6 +4,12 @@ import TableComponent from "../../components/TableComponent";
 import { BiPlus, BiEdit } from "react-icons/bi";
 import Snackbar from "../../components/Snackbar";
 import { useTheme } from "../../context/Theme";
+import Chip from "../../components/Chip";
+
+const STATUS_OPTIONS = [
+    { value: "1", label: "Active" },
+    { value: "0", label: "Inactive" },
+];
 
 const Branches = () => {
     const [branches, setBranches] = useState([]);
@@ -27,6 +33,8 @@ const Branches = () => {
     });
     const [createLoading, setCreateLoading] = useState(false);
 
+    const [tableState, setTableState] = useState({ sortBy: '', sortOrder: 'asc', filters: {} });
+
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearch(search);
@@ -38,7 +46,14 @@ const Branches = () => {
     const fetchBranches = useCallback(async (page = 1, perPage = pageSize, q = debouncedSearch) => {
         setLoading(true);
         try {
-            const res = await getBranches({ page, per_page: perPage, ...(q && { q }) });
+            const res = await getBranches({
+                page,
+                per_page: perPage,
+                ...(q && { q }),
+                ...(tableState.sortBy && { sort_by: tableState.sortBy, sort_order: tableState.sortOrder }),
+                ...(tableState.filters.name && { name: tableState.filters.name }),
+                ...(tableState.filters.status && { status: tableState.filters.status }),
+            });
             const data = res.data;
             if (data.success) {
                 setBranches(data.branches || []);
@@ -50,7 +65,7 @@ const Branches = () => {
         } finally {
             setLoading(false);
         }
-    }, [pageSize, debouncedSearch]);
+    }, [pageSize, debouncedSearch, tableState]);
 
     useEffect(() => {
         fetchBranches(currentPage, pageSize, debouncedSearch);
@@ -60,15 +75,6 @@ const Branches = () => {
     const handlePageSizeChange = (size) => {
         setPageSize(size);
         setCurrentPage(1);
-    };
-
-    const handleStatusToggle = (branch) => {
-        setBranches((prev) =>
-            prev.map((b) =>
-                b.id === branch.id ? { ...b, status: branch.status === 1 ? 0 : 1 } : b
-            )
-        );
-        setSnack({ message: "Status updated (UI only)", type: "success" });
     };
 
     const handleCreateFieldChange = (field, value) => {
@@ -144,24 +150,46 @@ const Branches = () => {
     };
 
     const columns = [
-        { header: "Code", accessor: "code" },
-        { header: "Name", accessor: "name" },
-        { header: "Address", accessor: "address" },
-        { header: "Mobile", accessor: "mobile" },
-        { header: "Email", accessor: "email" },
-        { header: "Phone", accessor: "phone" },
+        {
+            header: "Name",
+            accessor: "name",
+            sortable: true,
+            filterable: true,
+            filterType: "text",
+        },
+        {
+            header: "Address",
+            accessor: "address",
+            sortable: true,
+            filterable: true,
+            filterType: "text",
+        },
+        {
+            header: "Mobile",
+            accessor: "mobile",
+            sortable: true,
+            filterable: true,
+            filterType: "text",
+        },
+        {
+            header: "Email",
+            accessor: "email",
+            sortable: true,
+            filterable: true,
+            filterType: "text",
+        },
         {
             header: "Status",
             accessor: "status",
+            sortable: true,
+            filterable: true,
+            filterType: "select",
+            filterOptions: STATUS_OPTIONS,
             cell: (row) => (
-                <span
-                    className={`px-2 py-1 rounded-full text-xs font-semibold ${row.status === 1
-                        ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100"
-                        : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100"
-                        }`}
-                >
-                    {row.status === 1 ? "Active" : "Inactive"}
-                </span>
+                <Chip
+                    label={row.status === 1 ? "Active" : "Inactive"}
+                    color={row.status === 1 ? "success" : "error"}
+                />
             ),
         },
         {
@@ -202,6 +230,8 @@ const Branches = () => {
                 searchValue={search}
                 onSearchChange={setSearch}
                 searchPlaceholder="Search branches..."
+                onTableChange={setTableState}
+                onClearAllFilters={() => setSearch("")}
             />
             {/* Floating Add Button */}
             <button

@@ -1,11 +1,17 @@
 import { useEffect, useState, useCallback, Fragment } from "react";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
-import { getEmployees, createEmployee, updateEmployee, getMinimalBranches, getActiveDesignations } from "../../services/api";
+import { getEmployees, createEmployee, updateEmployee, updateEmployeeStatus, getMinimalBranches, getActiveDesignations } from "../../services/api";
 import TableComponent from "../../components/TableComponent";
 import { BiPlus, BiEdit } from "react-icons/bi";
 import Snackbar from "../../components/Snackbar";
 import { useTheme } from "../../context/Theme";
+import Chip from "../../components/Chip";
+
+const STATUS_OPTIONS = [
+    { value: "1", label: "Active" },
+    { value: "0", label: "Inactive" },
+];
 
 const Employees = () => {
     const [employees, setEmployees] = useState([]);
@@ -30,6 +36,7 @@ const Employees = () => {
     const [createLoading, setCreateLoading] = useState(false);
     const [branches, setBranches] = useState([]);
     const [designations, setDesignations] = useState([]);
+    const [tableState, setTableState] = useState({ sortBy: '', sortOrder: 'asc', filters: {} });
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -42,7 +49,20 @@ const Employees = () => {
     const fetchEmployees = useCallback(async (page = 1, perPage = pageSize, q = debouncedSearch) => {
         setLoading(true);
         try {
-            const res = await getEmployees({ page, per_page: perPage, ...(q && { q }) });
+            const res = await getEmployees({
+                page,
+                per_page: perPage,
+                ...(q && { q }),
+                ...(tableState.sortBy && { sort_by: tableState.sortBy, sort_order: tableState.sortOrder }),
+                ...(tableState.filters.employee_code && { employee_code: tableState.filters.employee_code }),
+                ...(tableState.filters.name && { name: tableState.filters.name }),
+                ...(tableState.filters.mobile && { mobile: tableState.filters.mobile }),
+                ...(tableState.filters.email && { email: tableState.filters.email }),
+                ...(tableState.filters.status && { status: tableState.filters.status }),
+                ...(tableState.filters.branch_code && { branch_code: tableState.filters.branch_code }),
+                ...(tableState.filters.branch_name && { branch_name: tableState.filters.branch_name }),
+                ...(tableState.filters.designation && { designation: tableState.filters.designation }),
+            });
             const data = res.data;
             if (data.success) {
                 setEmployees(data.employees || []);
@@ -54,7 +74,22 @@ const Employees = () => {
         } finally {
             setLoading(false);
         }
-    }, [pageSize, debouncedSearch]);
+    }, [pageSize, debouncedSearch, tableState]);
+
+    const handleStatusToggle = async (employee) => {
+        const newStatus = employee.status === "1" ? "0" : "1";
+        try {
+            setEmployees((prevEmployees) =>
+                prevEmployees.map((emp) =>
+                    emp.id === employee.id ? { ...emp, status: newStatus } : emp
+                )
+            );
+            const res = await updateEmployeeStatus(employee.id, newStatus);
+            setSnack({ message: res.data?.message || "Status updated", type: "success" });
+        } catch (err) {
+            setSnack({ message: "Failed to update status.", type: "error" });
+        }
+    };
 
     useEffect(() => {
         fetchEmployees(currentPage, pageSize, debouncedSearch);
@@ -107,7 +142,6 @@ const Employees = () => {
         }
     };
 
-    // Edit modal state
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editFields, setEditFields] = useState({});
     const [editEmployee, setEditEmployee] = useState(null);
@@ -156,21 +190,27 @@ const Employees = () => {
     };
 
     const columns = [
-        { header: "Employee Code", accessor: "employee_code" },
-        { header: "Name", accessor: "name" },
-        { header: "Mobile", accessor: "mobile" },
-        { header: "Email", accessor: "email" },
-        { header: "Status", accessor: "status", cell: (row) => (
-            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${row.status === "1"
-                ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100"
-                : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100"
-                }`}>
-                {row.status === "1" ? "Active" : "Inactive"}
-            </span>
-        ) },
-        { header: "Branch Code", accessor: "branch_code" },
-        { header: "Branch Name", accessor: "branch_name" },
-        { header: "Designation", accessor: "designation" },
+        { header: "Employee Code", accessor: "employee_code", sortable: true, filterable: true, filterType: "text" },
+        { header: "Name", accessor: "name", sortable: true, filterable: true, filterType: "text" },
+        { header: "Mobile", accessor: "mobile", sortable: true, filterable: true, filterType: "text" },
+        { header: "Email", accessor: "email", sortable: true, filterable: true, filterType: "text" },
+        {
+            header: "Status",
+            accessor: "status",
+            sortable: true,
+            filterable: true,
+            filterType: "select",
+            filterOptions: STATUS_OPTIONS,
+            cell: (row) => (
+                <Chip
+                    label={row.status === "1" ? "Active" : "Inactive"}
+                    color={row.status === "1" ? "success" : "error"}
+                />
+            )
+        },
+        { header: "Branch Code", accessor: "branch_code", sortable: true, filterable: true, filterType: "text" },
+        { header: "Branch Name", accessor: "branch_name", sortable: true, filterable: true, filterType: "text" },
+        { header: "Designation", accessor: "designation", sortable: true, filterable: true, filterType: "text" },
         {
             header: "Actions",
             accessor: "actions",
@@ -183,6 +223,15 @@ const Employees = () => {
                         title="Edit"
                     >
                         <BiEdit size={20} />
+                    </button>
+                    <button
+                        onClick={() => handleStatusToggle(row)}
+                        className={`relative inline-flex items-center h-4 w-7 rounded-full transition-colors duration-300 focus:outline-none ${row.status === "1" ? "bg-green-500" : "bg-gray-300"}`}
+                        title={row.status === "1" ? "Set Inactive" : "Set Active"}
+                    >
+                        <span
+                            className={`inline-block h-3 w-3 transform bg-white rounded-full shadow transition-transform duration-300 ${row.status === "1" ? "translate-x-3.5" : "translate-x-0.5"}`}
+                        />
                     </button>
                 </div>
             ),
@@ -209,6 +258,8 @@ const Employees = () => {
                 searchValue={search}
                 onSearchChange={setSearch}
                 searchPlaceholder="Search employees..."
+                onTableChange={setTableState}
+                onClearAllFilters={() => setSearch("")}
             />
             {/* Floating Add Button */}
             <button

@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/Theme";
 import API, { API_ENDPOINTS } from "../services/api";
 import { motion, AnimatePresence } from "framer-motion";
+import { BiMenu, BiX } from "react-icons/bi";
 
 const Layout = ({ role, menuItems = [] }) => {
     const { user, logout, token } = useAuth();
@@ -77,7 +78,6 @@ const Layout = ({ role, menuItems = [] }) => {
             className="flex h-screen transition-colors duration-500"
             style={{ background: colors.background }}
         >
-            {/* Backdrop Blur - Only shown when mobile sidebar is open */}
             {mobileSidebarOpen && (
                 <div
                     className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
@@ -85,39 +85,38 @@ const Layout = ({ role, menuItems = [] }) => {
                 />
             )}
 
-            {/* Sidebar - Mobile Behavior Fixed */}
             <aside
                 ref={sidebarRef}
                 className={`fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out transform
                     ${collapsed ? "w-16" : "w-64"} 
                     ${mobileSidebarOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"} 
                     md:relative md:translate-x-0 md:z-auto`}
-                style={{ background: colors.sidebar, borderColor: colors.gray[200] }}
+                style={{ background: colors.sidebar, borderColor: colors.primary }}
             >
                 <div
-                    className="flex items-center justify-between p-4 h-14 border-b"
-                    style={{ borderColor: colors.gray[200] }}
+                    className="flex items-center justify-between p-4 h-14"
                 >
                     {!collapsed && (
-                        <span className="text-lg font-semibold text-gray-900 dark:text-white">TBMS</span>
+                        <span className="p-5 text-lg font-semibold text-gray-900 dark:text-white">TBMS</span>
                     )}
 
-                    {/* Desktop Collapse Button */}
                     <button
                         onClick={() => setCollapsed(!collapsed)}
-                        className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors hidden md:flex"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors hidden md:flex"
                         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                     >
-                        <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 24 24" fill="none">
+                        <motion.div
+                            animate={{ rotate: collapsed ? 0 : 180 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                        >
                             {collapsed ? (
-                                <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <BiMenu className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                             ) : (
-                                <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <BiX className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                             )}
-                        </svg>
+                        </motion.div>
                     </button>
 
-                    {/* Mobile Close Button */}
                     <button
                         onClick={() => setMobileSidebarOpen(false)}
                         className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors md:hidden"
@@ -138,10 +137,12 @@ const Layout = ({ role, menuItems = [] }) => {
                                 <div key={item.label}>
                                     <button
                                         type="button"
-                                        onClick={() => handleToggleMenu(item.label)}
+                                        onClick={() => {
+                                            if (collapsed) setCollapsed(false);
+                                            handleToggleMenu(item.label);
+                                        }}
                                         className={`flex items-center w-full gap-3 px-3 py-2.5 rounded-md transition-colors mb-1
                                             text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700
-                                            ${isOpen ? "bg-gray-100 dark:bg-gray-700 font-medium" : ""}
                                         `}
                                     >
                                         <span className="flex-shrink-0 text-gray-500 dark:text-gray-400">{item.icon}</span>
@@ -159,27 +160,38 @@ const Layout = ({ role, menuItems = [] }) => {
                                             </>
                                         )}
                                     </button>
-                                    {isOpen && !collapsed && (
-                                        <div className="ml-4">
-                                            {item.children.map((child) => (
-                                                <NavLink
-                                                    key={child.path}
-                                                    to={child.path}
-                                                    onClick={() => setMobileSidebarOpen(false)}
-                                                    className={({ isActive }) =>
-                                                        `flex items-center gap-3 px-3 py-2 rounded-md transition-colors mb-1
-                                                        ${isActive
-                                                            ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium"
-                                                            : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                                                        }`
-                                                    }
-                                                >
-                                                    <span className="flex-shrink-0 text-gray-500 dark:text-gray-400">{child.icon}</span>
-                                                    <span className="text-sm">{child.label}</span>
-                                                </NavLink>
-                                            ))}
-                                        </div>
-                                    )}
+                                    <AnimatePresence initial={false}>
+                                        {isOpen && !collapsed && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                                                className="ml-4 overflow-hidden"
+                                            >
+                                                {item.children.map((child) => (
+                                                    <NavLink
+                                                        key={child.path}
+                                                        to={child.path}
+                                                        onClick={() => {
+                                                            if (collapsed) setCollapsed(false);
+                                                            setMobileSidebarOpen(false);
+                                                        }}
+                                                        className={({ isActive }) =>
+                                                            `flex items-center gap-3 px-3 py-2 rounded-md transition-colors mb-1
+                                                            ${isActive
+                                                                ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium"
+                                                                : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                                            }`
+                                                        }
+                                                    >
+                                                        <span className="flex-shrink-0 text-gray-500 dark:text-gray-400">{child.icon}</span>
+                                                        <span className="text-sm">{child.label}</span>
+                                                    </NavLink>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             );
                         }
@@ -188,7 +200,10 @@ const Layout = ({ role, menuItems = [] }) => {
                             <NavLink
                                 key={item.path}
                                 to={item.path}
-                                onClick={() => setMobileSidebarOpen(false)}
+                                onClick={() => {
+                                    if (collapsed) setCollapsed(false);
+                                    setMobileSidebarOpen(false);
+                                }}
                                 className={({ isActive }) =>
                                     `flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors mb-1 ${isActive
                                         ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium"

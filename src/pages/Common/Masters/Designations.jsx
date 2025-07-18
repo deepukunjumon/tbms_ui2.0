@@ -10,6 +10,12 @@ import {
     createDesignation,
 } from "../../../services/api";
 import { useTheme } from "../../../context/Theme";
+import Chip from "../../../components/Chip";
+
+const STATUS_OPTIONS = [
+    { value: "1", label: "Active" },
+    { value: "0", label: "Inactive" },
+];
 
 const Designations = () => {
     const [designations, setDesignations] = useState([]);
@@ -18,7 +24,6 @@ const Designations = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [search, setSearch] = useState("");
-    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editDesignation, setEditDesignation] = useState(null);
     const [editFields, setEditFields] = useState({});
@@ -27,10 +32,11 @@ const Designations = () => {
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [createValue, setCreateValue] = useState("");
     const [createLoading, setCreateLoading] = useState(false);
+    const [tableState, setTableState] = useState({ sortBy: '', sortOrder: 'asc', filters: {} });
+    const [debouncedSearch, setDebouncedSearch] = useState("");
 
     const { colors } = useTheme();
 
-    // Debounce search
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearch(search);
@@ -39,26 +45,33 @@ const Designations = () => {
         return () => clearTimeout(handler);
     }, [search]);
 
-    const fetchDesignations = useCallback(async (page = 1, perPage = pageSize, q = debouncedSearch) => {
+    const fetchDesignations = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await getDesignations({ page, per_page: perPage, ...(q && { q }) });
+            const res = await getDesignations({
+                page: currentPage,
+                per_page: pageSize,
+                ...(debouncedSearch && { q: debouncedSearch }),
+                ...(tableState.sortBy && { sort_by: tableState.sortBy, sort_order: tableState.sortOrder }),
+                ...(tableState.filters.designation && { designation: tableState.filters.designation }),
+                ...(tableState.filters.status && { status: tableState.filters.status }),
+            });
             const data = res.data;
             if (data.success) {
                 setDesignations(data.designations || []);
                 setPagination(data.pagination || {});
-                setCurrentPage(data.pagination.current_page || 1);
+                setCurrentPage(data.pagination?.current_page || 1);
             }
-        } catch (err) {
+        } catch {
             setDesignations([]);
         } finally {
             setLoading(false);
         }
-    }, [pageSize, debouncedSearch]);
+    }, [currentPage, pageSize, debouncedSearch, tableState]);
 
     useEffect(() => {
-        fetchDesignations(currentPage, pageSize, debouncedSearch);
-    }, [fetchDesignations, currentPage, pageSize, debouncedSearch]);
+        fetchDesignations();
+    }, [fetchDesignations]);
 
     const handlePageChange = (page) => setCurrentPage(page);
     const handlePageSizeChange = (size) => {
@@ -68,9 +81,7 @@ const Designations = () => {
 
     const handleEditClick = (designation) => {
         setEditDesignation(designation);
-        setEditFields({
-            designation: designation.designation || "",
-        });
+        setEditFields({ designation: designation.designation || "" });
         setEditModalOpen(true);
     };
 
@@ -80,14 +91,14 @@ const Designations = () => {
 
     const handleEditSave = async () => {
         if (!editDesignation) return;
-        const { designation: designationValue } = editFields;
-        if (!designationValue.trim()) {
+        const value = editFields.designation?.trim();
+        if (!value) {
             alert("Designation is required.");
             return;
         }
         const changes = {};
-        if (designationValue !== editDesignation.designation) changes.designation = designationValue;
-        if (Object.keys(changes).length === 0) {
+        if (value !== editDesignation.designation) changes.designation = value;
+        if (!Object.keys(changes).length) {
             setEditModalOpen(false);
             setSnack({ message: "No changes to update.", type: "info" });
             return;
@@ -95,10 +106,10 @@ const Designations = () => {
         setEditLoading(true);
         try {
             await updateDesignation(editDesignation.id, changes);
-            fetchDesignations(currentPage, pageSize, debouncedSearch);
+            fetchDesignations();
             setEditModalOpen(false);
             setSnack({ message: "Designation updated successfully", type: "success" });
-        } catch (err) {
+        } catch {
             alert("Failed to update designation.");
         } finally {
             setEditLoading(false);
@@ -115,24 +126,25 @@ const Designations = () => {
                 )
             );
             setSnack({ message: "Status updated", type: "success" });
-        } catch (err) {
+        } catch {
             setSnack({ message: "Failed to update status.", type: "error" });
         }
     };
 
     const handleCreateSave = async () => {
-        if (!createValue.trim()) {
+        const value = createValue.trim();
+        if (!value) {
             setSnack({ message: "Designation is required.", type: "error" });
             return;
         }
         setCreateLoading(true);
         try {
-            const res = await createDesignation(createValue.trim());
+            const res = await createDesignation(value);
             setSnack({ message: res.data?.message || "Designation created successfully", type: "success" });
             setCreateModalOpen(false);
             setCreateValue("");
-            fetchDesignations(currentPage, pageSize, debouncedSearch);
-        } catch (err) {
+            fetchDesignations();
+        } catch {
             setSnack({ message: "Failed to create designation.", type: "error" });
         } finally {
             setCreateLoading(false);
@@ -140,19 +152,25 @@ const Designations = () => {
     };
 
     const columns = [
-        { header: "Designation", accessor: "designation" },
+        {
+            header: "Designation",
+            accessor: "designation",
+            sortable: true,
+            filterable: true,
+            filterType: "text",
+        },
         {
             header: "Status",
             accessor: "status",
+            sortable: true,
+            filterable: true,
+            filterType: "select",
+            filterOptions: STATUS_OPTIONS,
             cell: (row) => (
-                <span
-                    className={`px-2 py-1 rounded-full text-xs font-semibold ${row.status === 1
-                        ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100"
-                        : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100"
-                        }`}
-                >
-                    {row.status === 1 ? "Active" : "Inactive"}
-                </span>
+                <Chip
+                    label={row.status === 1 ? "Active" : "Inactive"}
+                    color={row.status === 1 ? "success" : "error"}
+                />
             ),
         },
         {
@@ -172,12 +190,13 @@ const Designations = () => {
                     )}
                     <button
                         onClick={() => handleStatusToggle(row)}
-                        className="relative inline-flex items-center h-4 w-7 rounded-full transition-colors duration-300 focus:outline-none"
-                        style={{ background: row.status === 1 ? colors.success : colors.gray[300] }}
+                        className={`relative inline-flex items-center h-4 w-7 rounded-full transition-colors duration-300 focus:outline-none ${row.status === 1 ? "bg-green-500" : "bg-gray-300"
+                            }`}
                         title={row.status === 1 ? "Set Inactive" : "Set Active"}
                     >
                         <span
-                            className={`inline-block h-3 w-3 transform bg-white rounded-full shadow transition-transform duration-300 ${row.status === 1 ? "translate-x-3.5" : "translate-x-0.5"}`}
+                            className={`inline-block h-3 w-3 transform bg-white rounded-full shadow transition-transform duration-300 ${row.status === 1 ? "translate-x-3.5" : "translate-x-0.5"
+                                }`}
                         />
                     </button>
                 </div>
@@ -192,7 +211,18 @@ const Designations = () => {
                 type={snack.type}
                 onClose={() => setSnack({ message: "", type: "success" })}
             />
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">Designations</h2>
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Designations</h2>
+                <button
+                    className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded text-white hover:bg-teal-700 transition text-base font-semibold focus:outline-none"
+                    style={{ background: colors.primary, color: colors.white }}
+                    onClick={() => setCreateModalOpen(true)}
+                    title="Add Designation"
+                >
+                    <MdAdd className="text-xl" />
+                    Add
+                </button>
+            </div>
             <TableComponent
                 columns={columns}
                 data={designations}
@@ -205,6 +235,8 @@ const Designations = () => {
                 searchValue={search}
                 onSearchChange={setSearch}
                 searchPlaceholder="Search designations..."
+                onTableChange={setTableState}
+                onClearAllFilters={() => setSearch("")}
             />
             {editModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -271,9 +303,8 @@ const Designations = () => {
                     </div>
                 </div>
             )}
-            {/* Floating Add Button */}
             <button
-                className="fixed bottom-7 right-7 z-10 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none"
+                className="fixed bottom-7 right-7 z-10 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none md:hidden"
                 style={{ background: colors.primary, color: colors.white }}
                 onClick={() => setCreateModalOpen(true)}
                 title="Add Designation"

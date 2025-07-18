@@ -3,10 +3,12 @@ import API, { API_ENDPOINTS, updateItem, updateItemStatus, createItem, importIte
 import { useTheme } from "../../../context/Theme";
 import TableComponent from "../../../components/TableComponent";
 import { MdAdd, MdMoreVert } from "react-icons/md";
-import { BiEdit } from "react-icons/bi";
+import { BiEdit, BiExport } from "react-icons/bi";
 import Snackbar from "../../../components/Snackbar";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
+import { BiSolidFileImport } from "react-icons/bi";
+import Chip from "../../../components/Chip";
 
 const CATEGORY_OPTIONS = [
     { value: "snacks", label: "Snacks" },
@@ -41,6 +43,9 @@ const Items = () => {
     const [selectedImportFile, setSelectedImportFile] = useState(null);
     const [importLoading, setImportLoading] = useState(false);
 
+    // Table sort/filter state
+    const [tableState, setTableState] = useState({ sortBy: '', sortOrder: 'asc', filters: {} });
+
     const token = localStorage.getItem("token");
     const { colors } = useTheme();
 
@@ -61,6 +66,10 @@ const Items = () => {
                     page,
                     per_page: perPage,
                     ...(q && { q }),
+                    ...(tableState.sortBy && { sort_by: tableState.sortBy, sort_order: tableState.sortOrder }),
+                    ...(tableState.filters.name && { name: tableState.filters.name }),
+                    ...(tableState.filters.category && { category: tableState.filters.category }),
+                    ...(tableState.filters.status && { status: tableState.filters.status }),
                 },
             });
             const data = res.data;
@@ -74,7 +83,7 @@ const Items = () => {
         } finally {
             setLoading(false);
         }
-    }, [token, debouncedSearch, pageSize]);
+    }, [token, debouncedSearch, pageSize, tableState]);
 
     useEffect(() => {
         fetchItems(currentPage, pageSize, debouncedSearch);
@@ -218,20 +227,36 @@ const Items = () => {
     };
 
     const columns = [
-        { header: "Name", accessor: "name" },
-        { header: "Category", accessor: "category" },
+        {
+            header: "Name",
+            accessor: "name",
+            sortable: true,
+            filterable: true,
+            filterType: "text",
+        },
+        {
+            header: "Category",
+            accessor: "category",
+            sortable: true,
+            filterable: true,
+            filterType: "select",
+            filterOptions: CATEGORY_OPTIONS,
+        },
         {
             header: "Status",
             accessor: "status",
+            sortable: true,
+            filterable: true,
+            filterType: "select",
+            filterOptions: [
+                { value: "1", label: "Active" },
+                { value: "0", label: "Inactive" },
+            ],
             cell: (row) => (
-                <span
-                    className={`px-2 py-1 rounded-full text-xs font-semibold ${row.status === 1
-                        ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100"
-                        : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100"
-                        }`}
-                >
-                    {row.status === 1 ? "Active" : "Inactive"}
-                </span>
+                <Chip
+                    label={row.status === 1 ? "Active" : "Inactive"}
+                    color={row.status === 1 ? "success" : "error"}
+                />
             ),
         },
         {
@@ -259,8 +284,6 @@ const Items = () => {
                                 }`}
                         />
                     </button>
-
-
                 </div>
             ),
         },
@@ -287,9 +310,10 @@ const Items = () => {
                     {menuOpen && (
                         <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-50">
                             <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                className="w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                                 onClick={handleImportClick}
                             >
+                                <BiSolidFileImport style={{ color: colors.success }} />
                                 Import
                             </button>
                         </div>
@@ -308,6 +332,8 @@ const Items = () => {
                 searchValue={search}
                 onSearchChange={setSearch}
                 searchPlaceholder="Search items..."
+                onTableChange={setTableState}
+                onClearAllFilters={() => setSearch("")}
             />
             {/* Floating Add Button */}
             <button
