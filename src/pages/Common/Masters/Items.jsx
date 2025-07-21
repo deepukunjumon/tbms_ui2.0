@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, Fragment } from "react";
+import { useEffect, useState, useRef, useCallback, Fragment, useMemo } from "react";
 import API, { API_ENDPOINTS, updateItem, updateItemStatus, createItem, importItems, SAMPLE_ITEMS_FILE_URL } from "../../../services/api";
 import { useTheme } from "../../../context/Theme";
 import TableComponent from "../../../components/TableComponent";
@@ -186,7 +186,7 @@ const Items = () => {
         }
     };
 
-    const handleStatusToggle = async (item) => {
+    const handleStatusToggle = useCallback(async (item) => {
         const newStatus = item.status === 1 ? 0 : 1;
 
         try {
@@ -200,7 +200,7 @@ const Items = () => {
         } catch (err) {
             setSnack({ message: "Failed to update status.", type: "error" });
         }
-    };
+    }, []);
 
     const handleCreateFieldChange = (field, value) => {
         setCreateFields((prev) => ({ ...prev, [field]: value }));
@@ -226,7 +226,7 @@ const Items = () => {
         }
     };
 
-    const columns = [
+    const columns = useMemo(() => [
         {
             header: "Name",
             accessor: "name",
@@ -241,6 +241,13 @@ const Items = () => {
             filterable: true,
             filterType: "select",
             filterOptions: CATEGORY_OPTIONS,
+        },
+        {
+            header: "Description",
+            accessor: "description",
+            sortable: true,
+            filterable: true,
+            filterType: "text",
         },
         {
             header: "Status",
@@ -287,7 +294,7 @@ const Items = () => {
                 </div>
             ),
         },
-    ];
+    ], []);
 
     return (
         <div className="p-6">
@@ -299,25 +306,36 @@ const Items = () => {
             />
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Items</h2>
-                <div className="relative" ref={menuRef}>
+                <div className="flex items-center gap-2">
+                    <div className="relative" ref={menuRef}>
+                        <button
+                            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
+                            onClick={() => setMenuOpen((v) => !v)}
+                            aria-label="Menu"
+                        >
+                            <MdMoreVert size={24} className="text-gray-800 dark:text-gray-100" />
+                        </button>
+                        {menuOpen && (
+                            <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-50">
+                                <button
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                                    onClick={handleImportClick}
+                                >
+                                    <BiSolidFileImport style={{ color: colors.success }} />
+                                    Import
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <button
-                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
-                        onClick={() => setMenuOpen((v) => !v)}
-                        aria-label="Menu"
+                        className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded text-white hover:bg-teal-700 transition text-base font-semibold focus:outline-none"
+                        style={{ background: colors.primary, color: colors.white }}
+                        onClick={() => setCreateModalOpen(true)}
+                        title="Add Item"
                     >
-                        <MdMoreVert size={24} className="text-gray-800 dark:text-gray-100" />
+                        <MdAdd className="text-xl" />
+                        Add
                     </button>
-                    {menuOpen && (
-                        <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-50">
-                            <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                                onClick={handleImportClick}
-                            >
-                                <BiSolidFileImport style={{ color: colors.success }} />
-                                Import
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
             <TableComponent
@@ -337,7 +355,7 @@ const Items = () => {
             />
             {/* Floating Add Button */}
             <button
-                className="fixed bottom-7 right-7 z-10 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none"
+                className="fixed bottom-7 right-7 z-10 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none md:hidden"
                 style={{ background: colors.primary, color: colors.white }}
                 onClick={() => setCreateModalOpen(true)}
                 title="Add Item"
@@ -362,45 +380,45 @@ const Items = () => {
                         <div className="mb-3">
                             <label className="block text-sm mb-1 text-gray-700 dark:text-gray-200">Category</label>
                             <Listbox value={createFields.category} onChange={val => handleCreateFieldChange("category", val)} disabled={createLoading}>
-  {({ open }) => (
-    <div className="relative">
-      <Listbox.Button className="relative w-full cursor-pointer rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 dark:text-white">
-        <span className="block truncate">{CATEGORY_OPTIONS.find(opt => opt.value === createFields.category)?.label || "Select category"}</span>
-        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-          <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-        </span>
-      </Listbox.Button>
-      <Transition
-        show={open}
-        as={Fragment}
-        leave="transition ease-in duration-100"
-        leaveFrom="opacity-100"
-        leaveTo="opacity-0"
-      >
-        <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-900 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-200 dark:border-gray-700">
-          {CATEGORY_OPTIONS.map(opt => (
-            <Listbox.Option
-              key={opt.value}
-              className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-teal-100 dark:bg-teal-800 text-teal-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}
-              value={opt.value}
-            >
-              {({ selected }) => (
-                <>
-                  <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{opt.label}</span>
-                  {selected ? (
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-teal-600 dark:text-teal-400">
-                      <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                    </span>
-                  ) : null}
-                </>
-              )}
-            </Listbox.Option>
-          ))}
-        </Listbox.Options>
-      </Transition>
-    </div>
-  )}
-</Listbox>
+                            {({ open }) => (
+                                <div className="relative">
+                                <Listbox.Button className="relative w-full cursor-pointer rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 dark:text-white">
+                                    <span className="block truncate">{CATEGORY_OPTIONS.find(opt => opt.value === createFields.category)?.label || "Select category"}</span>
+                                    <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                    <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                    </span>
+                                </Listbox.Button>
+                                <Transition
+                                    show={open}
+                                    as={Fragment}
+                                    leave="transition ease-in duration-100"
+                                    leaveFrom="opacity-100"
+                                    leaveTo="opacity-0"
+                                >
+                                    <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-900 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-200 dark:border-gray-700">
+                                    {CATEGORY_OPTIONS.map(opt => (
+                                        <Listbox.Option
+                                        key={opt.value}
+                                        className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-teal-100 dark:bg-teal-800 text-teal-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}
+                                        value={opt.value}
+                                        >
+                                        {({ selected }) => (
+                                            <>
+                                            <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{opt.label}</span>
+                                            {selected ? (
+                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-teal-600 dark:text-teal-400">
+                                                <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                                </span>
+                                            ) : null}
+                                            </>
+                                        )}
+                                        </Listbox.Option>
+                                    ))}
+                                    </Listbox.Options>
+                                </Transition>
+                                </div>
+                            )}
+                            </Listbox>
                         </div>
                         <div className="mb-3">
                             <label className="block text-sm mb-1 text-gray-700 dark:text-gray-200">Description</label>
@@ -535,45 +553,45 @@ const Items = () => {
                         <div className="mb-3">
                             <label className="block text-sm mb-1 text-gray-700 dark:text-gray-200">Category</label>
                             <Listbox value={editFields.category || ""} onChange={val => handleEditFieldChange("category", val)} disabled={editLoading}>
-  {({ open }) => (
-    <div className="relative">
-      <Listbox.Button className="relative w-full cursor-pointer rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 dark:text-white">
-        <span className="block truncate">{CATEGORY_OPTIONS.find(opt => opt.value === (editFields.category || ""))?.label || "Select category"}</span>
-        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-          <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-        </span>
-      </Listbox.Button>
-      <Transition
-        show={open}
-        as={Fragment}
-        leave="transition ease-in duration-100"
-        leaveFrom="opacity-100"
-        leaveTo="opacity-0"
-      >
-        <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-900 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-200 dark:border-gray-700">
-          {CATEGORY_OPTIONS.map(opt => (
-            <Listbox.Option
-              key={opt.value}
-              className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-teal-100 dark:bg-teal-800 text-teal-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}
-              value={opt.value}
-            >
-              {({ selected }) => (
-                <>
-                  <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{opt.label}</span>
-                  {selected ? (
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-teal-600 dark:text-teal-400">
-                      <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                    </span>
-                  ) : null}
-                </>
-              )}
-            </Listbox.Option>
-          ))}
-        </Listbox.Options>
-      </Transition>
-    </div>
-  )}
-</Listbox>
+                            {({ open }) => (
+                                <div className="relative">
+                                <Listbox.Button className="relative w-full cursor-pointer rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 dark:text-white">
+                                    <span className="block truncate">{CATEGORY_OPTIONS.find(opt => opt.value === (editFields.category || ""))?.label || "Select category"}</span>
+                                    <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                    <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                    </span>
+                                </Listbox.Button>
+                                <Transition
+                                    show={open}
+                                    as={Fragment}
+                                    leave="transition ease-in duration-100"
+                                    leaveFrom="opacity-100"
+                                    leaveTo="opacity-0"
+                                >
+                                    <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-900 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-200 dark:border-gray-700">
+                                    {CATEGORY_OPTIONS.map(opt => (
+                                        <Listbox.Option
+                                        key={opt.value}
+                                        className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-teal-100 dark:bg-teal-800 text-teal-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}
+                                        value={opt.value}
+                                        >
+                                        {({ selected }) => (
+                                            <>
+                                            <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{opt.label}</span>
+                                            {selected ? (
+                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-teal-600 dark:text-teal-400">
+                                                <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                                </span>
+                                            ) : null}
+                                            </>
+                                        )}
+                                        </Listbox.Option>
+                                    ))}
+                                    </Listbox.Options>
+                                </Transition>
+                                </div>
+                            )}
+                            </Listbox>
                         </div>
 
                         <div className="mb-3">

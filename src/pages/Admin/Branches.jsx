@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { getBranches, createBranch, updateBranch } from "../../services/api";
 import TableComponent from "../../components/TableComponent";
 import { BiPlus, BiEdit } from "react-icons/bi";
@@ -71,11 +71,11 @@ const Branches = () => {
         fetchBranches(currentPage, pageSize, debouncedSearch);
     }, [fetchBranches, currentPage, pageSize, debouncedSearch]);
 
-    const handlePageChange = (page) => setCurrentPage(page);
-    const handlePageSizeChange = (size) => {
+    const handlePageChange = useCallback((page) => setCurrentPage(page), []);
+    const handlePageSizeChange = useCallback((size) => {
         setPageSize(size);
         setCurrentPage(1);
-    };
+    }, []);
 
     const handleCreateFieldChange = (field, value) => {
         setCreateFields((prev) => ({ ...prev, [field]: value }));
@@ -149,7 +149,14 @@ const Branches = () => {
         }
     };
 
-    const columns = [
+    const columns = useMemo(() => [
+        {
+            header: "Code",
+            accessor: "code",
+            sortable: true,
+            filterable: true,
+            filterType: "text",
+        },
         {
             header: "Name",
             accessor: "name",
@@ -163,10 +170,28 @@ const Branches = () => {
             sortable: true,
             filterable: true,
             filterType: "text",
+            cell: (row) => {
+                const addressText = row.address;
+                return (
+                    <div
+                        className="whitespace-normal break-words"
+                        title={row.address}
+                    >
+                        {addressText}
+                    </div>
+                );
+            },
         },
         {
             header: "Mobile",
             accessor: "mobile",
+            sortable: true,
+            filterable: true,
+            filterType: "text",
+        },
+        {
+            header: "Phone",
+            accessor: "phone",
             sortable: true,
             filterable: true,
             filterType: "text",
@@ -208,7 +233,7 @@ const Branches = () => {
                 </div>
             ),
         },
-    ];
+    ], [colors.primary]);
 
     return (
         <div className="p-6">
@@ -217,7 +242,18 @@ const Branches = () => {
                 type={snack.type}
                 onClose={() => setSnack({ message: "", type: "success" })}
             />
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">Branches</h2>
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Branches</h2>
+                <button
+                    className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded text-white hover:bg-teal-700 transition text-base font-semibold focus:outline-none"
+                    style={{ background: colors.primary, color: colors.white }}
+                    onClick={() => setCreateModalOpen(true)}
+                    title="Add Branch"
+                >
+                    <BiPlus className="text-xl" />
+                    Add
+                </button>
+            </div>
             <TableComponent
                 columns={columns}
                 data={branches}
@@ -235,7 +271,7 @@ const Branches = () => {
             />
             {/* Floating Add Button */}
             <button
-                className="fixed bottom-7 right-7 z-10 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none"
+                className="fixed bottom-7 right-7 z-10 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none md:hidden"
                 style={{ background: colors.primary, color: colors.white }}
                 onClick={() => setCreateModalOpen(true)}
                 title="Add Branch"

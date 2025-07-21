@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import TableComponent from "../../../components/TableComponent";
 import { MdAdd } from "react-icons/md";
 import { BiEdit } from "react-icons/bi";
@@ -151,7 +151,7 @@ const Designations = () => {
         }
     };
 
-    const columns = [
+    const columns = useMemo(() => [
         {
             header: "Designation",
             accessor: "designation",
@@ -202,7 +202,7 @@ const Designations = () => {
                 </div>
             ),
         },
-    ];
+    ], [colors.primary]);
 
     return (
         <div className="p-6">

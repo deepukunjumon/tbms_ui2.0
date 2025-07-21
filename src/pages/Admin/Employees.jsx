@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, Fragment } from "react";
+import { useEffect, useState, useCallback, Fragment, useMemo } from "react";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 import { getEmployees, createEmployee, updateEmployee, updateEmployeeStatus, getMinimalBranches, getActiveDesignations } from "../../services/api";
@@ -76,7 +76,7 @@ const Employees = () => {
         }
     }, [pageSize, debouncedSearch, tableState]);
 
-    const handleStatusToggle = async (employee) => {
+    const handleStatusToggle = useCallback(async (employee) => {
         const newStatus = employee.status === "1" ? "0" : "1";
         try {
             setEmployees((prevEmployees) =>
@@ -89,7 +89,7 @@ const Employees = () => {
         } catch (err) {
             setSnack({ message: "Failed to update status.", type: "error" });
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchEmployees(currentPage, pageSize, debouncedSearch);
@@ -104,11 +104,11 @@ const Employees = () => {
         });
     }, []);
 
-    const handlePageChange = (page) => setCurrentPage(page);
-    const handlePageSizeChange = (size) => {
+    const handlePageChange = useCallback((page) => setCurrentPage(page), []);
+    const handlePageSizeChange = useCallback((size) => {
         setPageSize(size);
         setCurrentPage(1);
-    };
+    }, []);
 
     const handleCreateFieldChange = (field, value) => {
         setCreateFields((prev) => ({ ...prev, [field]: value }));
@@ -189,7 +189,7 @@ const Employees = () => {
         }
     };
 
-    const columns = [
+    const columns = useMemo(() => [
         { header: "Employee Code", accessor: "employee_code", sortable: true, filterable: true, filterType: "text" },
         { header: "Name", accessor: "name", sortable: true, filterable: true, filterType: "text" },
         { header: "Mobile", accessor: "mobile", sortable: true, filterable: true, filterType: "text" },
@@ -236,7 +236,7 @@ const Employees = () => {
                 </div>
             ),
         },
-    ];
+    ], [colors.primary]);
 
     return (
         <div className="p-6">
@@ -245,7 +245,18 @@ const Employees = () => {
                 type={snack.type}
                 onClose={() => setSnack({ message: "", type: "success" })}
             />
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">Employees</h2>
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Employees</h2>
+                <button
+                    className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded text-white hover:bg-teal-700 transition text-base font-semibold focus:outline-none"
+                    style={{ background: colors.primary, color: colors.white }}
+                    onClick={() => setCreateModalOpen(true)}
+                    title="Add Employee"
+                >
+                    <BiPlus className="text-xl" />
+                    Add
+                </button>
+            </div>
             <TableComponent
                 columns={columns}
                 data={employees}
@@ -263,7 +274,7 @@ const Employees = () => {
             />
             {/* Floating Add Button */}
             <button
-                className="fixed bottom-7 right-7 z-10 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none"
+                className="fixed bottom-7 right-7 z-10 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition text-3xl focus:outline-none md:hidden"
                 style={{ background: colors.primary, color: colors.white }}
                 onClick={() => setCreateModalOpen(true)}
                 title="Add Employee"

@@ -1,9 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Spinner from "./Spinner";
 import { useTheme } from "../context/Theme";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
-import { useState, useRef } from "react";
 import { BiColumns, BiFilterAlt, BiSort } from "react-icons/bi";
 import ReactDOM from "react-dom";
 
@@ -31,6 +30,56 @@ const TableComponent = ({
     const [pendingFilter, setPendingFilter] = useState({});
     const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0, width: 0 });
     const headerRefs = useRef({});
+    const [columnWidths, setColumnWidths] = useState({});
+    const thRefs = useRef({});
+    const resizingColumnRef = useRef(null);
+    const startXRef = useRef(0);
+    const startWidthRef = useRef(0);
+
+    const handleMouseMove = useCallback((e) => {
+        if (!resizingColumnRef.current) return;
+        const deltaX = e.clientX - startXRef.current;
+        let newWidth = startWidthRef.current + deltaX;
+        if (newWidth < 50) newWidth = 50; // min width
+
+        const th = thRefs.current[resizingColumnRef.current];
+        if (th) {
+            th.style.width = `${newWidth}px`;
+        }
+    }, []);
+
+    const handleMouseUp = useCallback(() => {
+        if (!resizingColumnRef.current) return;
+
+        const th = thRefs.current[resizingColumnRef.current];
+        if (th) {
+            const newWidth = th.getBoundingClientRect().width;
+            setColumnWidths((prev) => ({
+                ...prev,
+                [resizingColumnRef.current]: newWidth,
+            }));
+        }
+
+        resizingColumnRef.current = null;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+    }, [handleMouseMove]);
+
+    const handleMouseDown = useCallback((e, accessor) => {
+        e.preventDefault();
+        resizingColumnRef.current = accessor;
+        startXRef.current = e.clientX;
+        const th = thRefs.current[accessor];
+        if (th) {
+            startWidthRef.current = th.getBoundingClientRect().width;
+        }
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        document.addEventListener("mousemove", handleMouseMove);
+        document.addEventListener("mouseup", handleMouseUp);
+    }, [handleMouseMove, handleMouseUp]);
 
     useEffect(() => {
         if (activePopover && headerRefs.current[activePopover]) {
@@ -100,7 +149,7 @@ const TableComponent = ({
                 className="relative group flex items-center gap-1 select-none"
                 ref={el => headerRefs.current[col.accessor] = el}
             >
-                <span>{col.header}</span>
+                <span className="truncate" title={col.header}>{col.header}</span>
                 <span
                     className="opacity-0 group-hover:opacity-100 transition cursor-pointer"
                     onClick={() => {
@@ -376,12 +425,24 @@ const TableComponent = ({
                     scrollbarWidth: 'thin',
                 }}
             >
-                <table className="min-w-full table-auto text-sm text-left">
+                <table className="min-w-full table-fixed text-sm text-left">
                     <thead className="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                         <tr>
-                            <th className="px-3 py-2 font-semibold text-md whitespace-nowrap sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">Sl. No.</th>
-                            {columns.map(col => columnVisibility[col.accessor] && <th key={col.accessor} className="px-3 py-2 font-bold text-md whitespace-nowrap sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">
+                            <th className="px-3 py-2 font-semibold text-md whitespace-nowrap sticky top-0 z-10 bg-gray-50 dark:bg-gray-800" style={{width: '80px'}}>Sl. No.</th>
+                            {columns.map(col => columnVisibility[col.accessor] && <th 
+                                key={col.accessor} 
+                                ref={el => (thRefs.current[col.accessor] = el)}
+                                className="px-3 py-2 font-bold text-md sticky top-0 z-10 bg-gray-50 dark:bg-gray-800"
+                                style={{
+                                    width: columnWidths[col.accessor] ? `${columnWidths[col.accessor]}px` : 'auto',
+                                    position: 'relative'
+                                }}
+                                >
                                 {renderHeader(col)}
+                                <div
+                                    onMouseDown={e => handleMouseDown(e, col.accessor)}
+                                    className="absolute top-0 right-0 h-full w-2 cursor-col-resize"
+                                />
                             </th>)}
                         </tr>
                     </thead>
@@ -404,7 +465,11 @@ const TableComponent = ({
                                     <td className="px-3 py-1.5 text-gray-900 dark:text-white whitespace-nowrap">
                                         {from + idx}
                                     </td>
-                                    {columns.map(col => columnVisibility[col.accessor] && <td key={col.accessor} className="px-3 py-1 font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
+                                    {columns.map(col => columnVisibility[col.accessor] && <td 
+                                        key={col.accessor} 
+                                        className="px-3 py-1 font-semibold text-gray-700 dark:text-gray-200 whitespace-normal break-words"
+                                        title={(typeof col.cell !== "function" && row[col.accessor]) || ''}
+                                        >
                                         {typeof col.cell === "function" ? col.cell(row) : row[col.accessor]}
                                     </td>)}
                                 </tr>
