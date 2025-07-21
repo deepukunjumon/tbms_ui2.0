@@ -1,6 +1,5 @@
 import axios from "axios";
 
-
 export const BASE_URL = "http://localhost:8080";
 
 const API = axios.create({
@@ -10,6 +9,8 @@ const API = axios.create({
 export const API_ENDPOINTS = {
     LOGIN: "/login",
     LOGOUT: "/logout",
+    PROFILE: "/profile",
+    PROFILE_UPDATE: "/update/profile",
     ITEMS: "/items",
     ITEM_UPDATE: "/item/update",
     ITEM_UPDATE_STATUS: "/item/update-status",
@@ -29,6 +30,7 @@ export const API_ENDPOINTS = {
     EMPLOYEE_STATUS_UPDATE: "/employee/update-status",
     MINIMAL_BRANCHES: "/branches/minimal",
     ACTIVE_DESIGNATIONS: "/designations/active",
+    DEFAULT_PASSWORD_RESET: "/default-password/reset",
 };
 
 API.interceptors.request.use((config) => {
@@ -103,5 +105,11 @@ export const getMinimalBranches = (params = {}, config = {}) =>
 
 export const getActiveDesignations = (params = {}, config = {}) =>
     API.get(API_ENDPOINTS.ACTIVE_DESIGNATIONS, { params, ...config });
+
+export const getProfile = () => API.get(API_ENDPOINTS.PROFILE);
+
+export const updateProfile = (changes) => API.post(API_ENDPOINTS.PROFILE_UPDATE, changes);
+
+export const updatePassword = (passwords) => API.post(API_ENDPOINTS.DEFAULT_PASSWORD_RESET, passwords);
 
 export default API;

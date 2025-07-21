@@ -13,6 +13,7 @@ import Items from "../pages/Common/Masters/Items";
 import Designations from "../pages/Common/Masters/Designations";
 import Branches from "../pages/Admin/Branches";
 import Employees from "../pages/Admin/Employees"
+import Profile from "../pages/Profile";
 
 // Route Guards
 import ProtectedRoute from "./ProtectedRoute";
@@ -35,6 +36,7 @@ const AppRoutes = () => (
             <Route path="super-admin/items" element={<Items />} />
             <Route path="super-admin/branches" element={<Branches />} />
             <Route path="super-admin/employees" element={<Employees />} />
+            <Route path="super-admin/profile" element={<Profile />} />
         </Route>
 
         {/* Admin Routes */}
@@ -50,6 +52,7 @@ const AppRoutes = () => (
             <Route path="admin/items" element={<Items />} />
             <Route path="admin/branches" element={<Branches />} />
             <Route path="admin/employees" element={<Employees />} />
+            <Route path="admin/profile" element={<Profile />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

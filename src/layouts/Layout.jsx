@@ -4,7 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/Theme";
 import API, { API_ENDPOINTS } from "../services/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { BiMenu, BiX } from "react-icons/bi";
+import { BiMenu, BiX, BiSolidBadgeCheck } from "react-icons/bi";
+import Spinner from "../components/Spinner";
 
 const Layout = ({ role, menuItems = [] }) => {
     const { user, logout, token } = useAuth();
@@ -16,6 +17,7 @@ const Layout = ({ role, menuItems = [] }) => {
     const sidebarRef = useRef();
     const navigate = useNavigate();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [logoutLoading, setLogoutLoading] = useState(false);
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -58,19 +60,27 @@ const Layout = ({ role, menuItems = [] }) => {
         : "U";
 
     const handleLogout = async () => {
+        setLogoutLoading(true);
         try {
             await API.post(API_ENDPOINTS.LOGOUT, {}, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
-            logout();
-            navigate("/login", { replace: true });
         } catch (error) {
             console.error("Logout failed:", error);
+        } finally {
             logout();
             navigate("/login", { replace: true });
+            setLogoutLoading(false);
+            setShowLogoutConfirm(false);
         }
+    };
+
+    const handleProfileClick = () => {
+        const adjustedRole = role === 'super_admin' ? 'super-admin' : role;
+        navigate(`/${adjustedRole}/profile`);
+        setAvatarOpen(false);
     };
 
     return (
@@ -272,11 +282,14 @@ const Layout = ({ role, menuItems = [] }) => {
                         </button>
                         <button
                             onClick={() => setAvatarOpen(!avatarOpen)}
-                            className="flex items-center gap-2 p-1 transition-colors"
+                            className="flex items-center gap-2 p-1 transition-colors relative"
                             aria-label="User menu"
                         >
                             <div className="w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center font-medium text-sm">
                                 {initials}
+                            </div>
+                            <div className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 bg-white rounded-full">
+                                <BiSolidBadgeCheck className="text-green-500" style={{ fontSize: '1rem' }} />
                             </div>
                         </button>
 
@@ -289,7 +302,10 @@ const Layout = ({ role, menuItems = [] }) => {
                                     transition={{ duration: 0.2 }}
                                     className="absolute right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg rounded-lg w-56 z-50 overflow-hidden"
                                 >
-                                    <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                                    <div 
+                                        className="p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                        onClick={handleProfileClick}
+                                    >
                                         <p className="font-medium text-gray-900 dark:text-white">{user?.name}</p>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{user?.email}</p>
                                     </div>
@@ -349,24 +365,33 @@ const Layout = ({ role, menuItems = [] }) => {
                         className="rounded-lg shadow-lg p-6 w-80"
                         style={{ background: colors.card, color: colors.text }}
                     >
-                        <h2 className="text-lg font-semibold mb-2">Confirm Logout</h2>
-                        <p className="mb-4">Are you sure you want to log out?</p>
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={() => setShowLogoutConfirm(false)}
-                                className="px-4 py-2 rounded-md transition"
-                                style={{ color: colors.text }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => { setShowLogoutConfirm(false); handleLogout(); }}
-                                className="px-4 py-2 rounded-md transition"
-                                style={{ background: colors.error, color: colors.white }}
-                            >
-                                Log out
-                            </button>
-                        </div>
+                        {logoutLoading ? (
+                            <div className="flex flex-col items-center justify-center gap-4">
+                                <Spinner />
+                                <p>Logging out...</p>
+                            </div>
+                        ) : (
+                            <>
+                                <h2 className="text-lg font-semibold mb-2">Confirm Logout</h2>
+                                <p className="mb-4">Are you sure you want to log out?</p>
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        onClick={() => setShowLogoutConfirm(false)}
+                                        className="px-4 py-2 rounded-md transition"
+                                        style={{ color: colors.text }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="px-4 py-2 rounded-md transition"
+                                        style={{ background: colors.error, color: colors.white }}
+                                    >
+                                        Log out
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
