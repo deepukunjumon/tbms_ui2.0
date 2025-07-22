@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/Theme';
 import Snackbar from '../components/Snackbar';
 import { getProfile, updateProfile, updatePassword } from '../services/api';
@@ -7,7 +6,6 @@ import Spinner from '../components/Spinner';
 import { BiShow, BiHide, BiEdit, BiSolidBadgeCheck } from 'react-icons/bi';
 
 const Profile = () => {
-    const { user } = useAuth();
     const { colors } = useTheme();
     const [snack, setSnack] = useState({ message: "", type: "success" });
     const [profileData, setProfileData] = useState(null);
@@ -261,7 +259,7 @@ const Profile = () => {
                                         type="submit"
                                         className="px-5 py-2 rounded-md font-semibold text-white transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ background: colors.primary }}
-                                        disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword || newPassword != confirmPassword}
+                                        disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
                                     >
                                         {passwordLoading ? 'Updating...' : 'Update Password'}
                                     </button>

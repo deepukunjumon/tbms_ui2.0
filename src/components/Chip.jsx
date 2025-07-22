@@ -1,5 +1,4 @@
 import React from "react";
-import { useTheme } from "../context/Theme";
 
 const COLOR_MAP = {
     success: {
@@ -21,9 +20,7 @@ const COLOR_MAP = {
 };
 
 const Chip = ({ label, color = "info", variant = "filled", className = "" }) => {
-    const { colors } = useTheme();
     let style = COLOR_MAP[color]?.[variant] || COLOR_MAP.info.filled;
-    // Allow custom color via Tailwind or className
     if (!COLOR_MAP[color]) style = color;
     return (
         <span

@@ -3,11 +3,10 @@ import API, { API_ENDPOINTS, updateItem, updateItemStatus, createItem, importIte
 import { useTheme } from "../../../context/Theme";
 import TableComponent from "../../../components/TableComponent";
 import { MdAdd, MdMoreVert } from "react-icons/md";
-import { BiEdit, BiExport } from "react-icons/bi";
+import { BiEdit, BiSolidFileImport } from "react-icons/bi";
 import Snackbar from "../../../components/Snackbar";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
-import { BiSolidFileImport } from "react-icons/bi";
 import Chip from "../../../components/Chip";
 
 const CATEGORY_OPTIONS = [
@@ -294,7 +293,7 @@ const Items = () => {
                 </div>
             ),
         },
-    ], []);
+    ], [handleStatusToggle]);
 
     return (
         <div className="p-6">

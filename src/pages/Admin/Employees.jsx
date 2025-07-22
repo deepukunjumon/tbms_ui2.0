@@ -236,7 +236,7 @@ const Employees = () => {
                 </div>
             ),
         },
-    ], [colors.primary]);
+    ], [colors.primary, handleStatusToggle]);
 
     return (
         <div className="p-6">

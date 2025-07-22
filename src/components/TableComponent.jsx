@@ -18,7 +18,7 @@ const TableComponent = ({
     searchValue = "",
     onSearchChange = () => { },
     searchPlaceholder = "Search...",
-    onTableChange = () => {},
+    onTableChange = () => { },
     onClearAllFilters = undefined,
 }) => {
     const [sortBy, setSortBy] = useState("");
@@ -35,6 +35,7 @@ const TableComponent = ({
     const resizingColumnRef = useRef(null);
     const startXRef = useRef(0);
     const startWidthRef = useRef(0);
+    const tableContainerRef = useRef(null);
 
     const handleMouseMove = useCallback((e) => {
         if (!resizingColumnRef.current) return;
@@ -111,18 +112,21 @@ const TableComponent = ({
     const handleFilterChange = (col, value) => {
         setPendingFilter((prev) => ({ ...prev, [col]: value }));
     };
+
     const handleApplyFilter = (col) => {
         const newFilters = { ...filters, [col]: pendingFilter[col] };
         setFilters(newFilters);
         onTableChange({ sortBy, sortOrder, filters: newFilters });
         setActivePopover(null);
     };
+
     const handleClearFilter = (col) => {
         const newFilters = { ...filters, [col]: "" };
         setFilters(newFilters);
         setPendingFilter((prev) => ({ ...prev, [col]: "" }));
         onTableChange({ sortBy, sortOrder, filters: newFilters });
     };
+
     const handleClearAllFilters = () => {
         const cleared = Object.fromEntries(columns.filter(c => c.filterable).map(c => [c.accessor, ""]));
         setFilters(cleared);
@@ -135,6 +139,7 @@ const TableComponent = ({
         setPopoverTab("sort");
         setActivePopover(null);
     };
+
     const handleToggleColumn = (col) => {
         setColumnVisibility((prev) => {
             const updated = { ...prev, [col]: !prev[col] };
@@ -417,33 +422,42 @@ const TableComponent = ({
                 </div>
             </div>
 
-            {/* Table */}
             <div
-                className="overflow-x-auto rounded-md shadow-sm max-h-[27rem] overflow-y-auto custom-scrollbar"
+                className="overflow-x-auto rounded-md shadow-sm custom-scrollbar relative"
+                ref={tableContainerRef}
                 style={{
-                    scrollbarColor: `${colors.primary} transparent`,
-                    scrollbarWidth: 'thin',
+                    maxHeight: 'calc(100vh - 250px)',
+                    overflow: 'auto'
                 }}
             >
-                <table className="min-w-full table-fixed text-sm text-left">
-                    <thead className="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                <table className="min-w-full table-fixed text-sm text-left border-collapse">
+                    <thead className="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 sticky top-0 z-20">
                         <tr>
-                            <th className="px-3 py-2 font-semibold text-md whitespace-nowrap sticky top-0 z-10 bg-gray-50 dark:bg-gray-800" style={{width: '80px'}}>Sl. No.</th>
-                            {columns.map(col => columnVisibility[col.accessor] && <th 
-                                key={col.accessor} 
-                                ref={el => (thRefs.current[col.accessor] = el)}
-                                className="px-3 py-2 font-bold text-md sticky top-0 z-10 bg-gray-50 dark:bg-gray-800"
-                                style={{
-                                    width: columnWidths[col.accessor] ? `${columnWidths[col.accessor]}px` : 'auto',
-                                    position: 'relative'
-                                }}
+                            <th
+                                className="px-3 py-2 font-semibold text-md whitespace-nowrap sticky top-0 z-30 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+                                style={{ position: 'sticky', left: 0, zIndex: 40 }}
+                            >
+                                Sl. No.
+                            </th>
+                            {columns.map(col => columnVisibility[col.accessor] && (
+                                <th
+                                    key={col.accessor}
+                                    ref={el => (thRefs.current[col.accessor] = el)}
+                                    className="px-3 py-2 font-bold text-md sticky top-0 z-30 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+                                    style={{
+                                        width: columnWidths[col.accessor] ? `${columnWidths[col.accessor]}px` : 'auto',
+                                        position: 'sticky',
+                                        top: 0,
+                                        zIndex: 30
+                                    }}
                                 >
-                                {renderHeader(col)}
-                                <div
-                                    onMouseDown={e => handleMouseDown(e, col.accessor)}
-                                    className="absolute top-0 right-0 h-full w-2 cursor-col-resize"
-                                />
-                            </th>)}
+                                    {renderHeader(col)}
+                                    <div
+                                        onMouseDown={e => handleMouseDown(e, col.accessor)}
+                                        className="absolute top-0 right-0 h-full w-2 cursor-col-resize"
+                                    />
+                                </th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
@@ -462,16 +476,21 @@ const TableComponent = ({
                         ) : (
                             data.map((row, idx) => (
                                 <tr key={row.id || idx} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                    <td className="px-3 py-1.5 text-gray-900 dark:text-white whitespace-nowrap">
+                                    <td
+                                        className="px-3 py-1.5 text-gray-900 dark:text-white whitespace-nowrap sticky left-0 z-10 bg-white dark:bg-gray-900"
+                                        style={{ position: 'sticky' }}
+                                    >
                                         {from + idx}
                                     </td>
-                                    {columns.map(col => columnVisibility[col.accessor] && <td 
-                                        key={col.accessor} 
-                                        className="px-3 py-1 font-semibold text-gray-700 dark:text-gray-200 whitespace-normal break-words"
-                                        title={(typeof col.cell !== "function" && row[col.accessor]) || ''}
+                                    {columns.map(col => columnVisibility[col.accessor] && (
+                                        <td
+                                            key={col.accessor}
+                                            className="px-3 py-1 font-semibold text-gray-700 dark:text-gray-200 whitespace-normal break-words bg-white dark:bg-gray-900"
+                                            title={(typeof col.cell !== "function" && row[col.accessor]) || ''}
                                         >
-                                        {typeof col.cell === "function" ? col.cell(row) : row[col.accessor]}
-                                    </td>)}
+                                            {typeof col.cell === "function" ? col.cell(row) : row[col.accessor]}
+                                        </td>
+                                    ))}
                                 </tr>
                             ))
                         )}
@@ -560,8 +579,8 @@ const TableComponent = ({
             )}
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar {
-                    width: 10px;
-                    height: 10px;
+                    width: 6px;
+                    height: 6px;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb {
                     background: ${colors.primary};
@@ -569,6 +588,13 @@ const TableComponent = ({
                 }
                 .custom-scrollbar::-webkit-scrollbar-track {
                     background: transparent;
+                }
+                table {
+                    position: relative;
+                }
+                thead th {
+                    position: -webkit-sticky;
+                    position: sticky;
                 }
             `}</style>
         </div>
